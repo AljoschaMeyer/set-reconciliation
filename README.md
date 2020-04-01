@@ -1,18 +1,30 @@
+> EL: After reading all of this, first I think this is interesting and it makes more precise the intuitions you covered in your Basel talks. So thank you for taking the time to write this down. With additional material to flesh out further the intutions, I think this could be a nice and interesting academic paper: this would have better visibility and a higher likelihood of longer term archival than a repository on GitHub. If you would like to continue receiving revenues from academic positions, this would also increase the likelihood that you can keep doing so in the future :-).
+
+> I also think that fleshing out the intuition more, and doing additional practical implementations, could help formulate the ideas in a way that would be accessible to a larger audience of potential implementers of decentralized systems. The rest of my comments below are geared toward those two aims. You are obviously free to ignore them for the purpose of publishing the idea in this repo.
+
 # Simple And Efficient Set Reconciliation
 
-Imagine two computers connected over a network, and each computer holds a set of values. Set reconciliation is the problem of efficiently exchanging messages between them such that in the end both hold the union of the two sets. If there is a total order on the items, and if items can be hashed to smaller fingerprints with negligible collision probability, this can be done logarithmic time in a fairly simple manner.
+Imagine two computers connected over a network, and each computer holds a set of values. Set reconciliation is the problem of efficiently exchanging messages between them such that in the end both hold the union of the two sets. If there is a total order on the items, and if items can be hashed to smaller fingerprints with negligible collision probability, this can be done in logarithmic time in a fairly simple manner.
+
+> EL: A slightly longer motivation section could provide more context on the kinds of practical problems for which both the 'total order', and 'hashable' properties hold. The context of replicating messages in SSB is obvious and would provide a historical trace of how you got into this problem. Additional concrete examples could also show how the technique is more generally applicable than that.
 
 ## Communication Protocol
 
 Assume first that the items an endpoint holds are sorted according to the total order. Assume further that we can efficiently compute fingerprints for any subrange of the sorted values (we'll see how to do that later). We define the fingerprint of an empty range to be 0. These building blocks allow us to create an efficient message-passing protocol based on exchanging fingerprints for smaller and smaller subranges.
 
-When an endpoint receives a fingerprint for a range (i.e. the value of the fingerprint as well as information on the way out the range begins and ends), it quickly computes the fingerprint over its local items in the same range. This leads to three different cases. If the local fingerprint equals the received fingerprint, this subrange is already reconciled, the endpoint merely replies that no further work is necessary. Else, if the received fingerprint is 0, the endpoint replies with all the items it holds in that range. Otherwise, the endpoint splits the range into two subranges and sends fingerprints for both of them. An endpoint can initiate the exchange by sending the fingerprint over the full range, or more elegantly by acting as if it had just received such a fingerprint that didn't match the local fingerprint over the full range.
+When an endpoint receives a fingerprint for a range (i.e. the value of the fingerprint as well as information on where the range begins and ends), it quickly computes the fingerprint over its local items in the same range. This leads to three different cases. If the local fingerprint equals the received fingerprint, this subrange is already reconciled, the endpoint merely replies that no further work is necessary. Else, if the received fingerprint is 0, the endpoint replies with all the items it holds in that range. Otherwise, the endpoint splits the range into two subranges and sends fingerprints for both of them. An endpoint can initiate the exchange by sending the fingerprint over the full range, or more elegantly by acting as if it had just received such a fingerprint that didn't match the local fingerprint over the full range.
+
+> EL: I don't understand the difference here with "by acting as if it had just received such a fingerprint that didn't match the local fingerprint over the full range"
 
 The messages can be bundled in rounds. In the first round, metadata about two ranges would be sent. The second round would consist of a reply concerning up to four ranges, the next reply would concern up to eight ranges, and so on. The protocol thus terminates after O(log(n)) rounds of communication, where n is the size of the smaller set. In the worst case, message size doubles in each round, for a total of O(n) pieces of transmitted data. But this worst-case behavior only occurs if the difference between the sets has size O(n) as well, in which case transmitting O(n) pieces of data cannot be avoided anyways.
 
-Instead of splitting ranges into two parts, they can just as well be split into more than two ones. This reduces the number of rounds by increasing the base of the logarithm.
+Ranges can be split in more than two parts: this reduces the number of rounds by increasing the base of the logarithm.
+
+> EL: Here, I think a high-level pseudo-code version of the algorithm, written in a way to be easily translatable into the major programming languages would make the job of implementers easier.
 
 Each message pertains to a number of ranges. These ranges can be encoded efficiently by merely specifying the smallest item of each range. For example, if the items are natural numbers, a message might look like `some-fingerprint 15 another-fingerprint 19 0-hash 24 some-numbers 30 done 38 some-more-numbers`. This would indicate that the fingerprint over all locally available numbers strictly less than `15` was `some-fingerprint`, the fingerprint over all locally available numbers greater than or equal to `15` and strictly less than `19` was `another-fingerprint`, no numbers between 19 and 24 were available, some numbers between 24 and 30 would be sent (because in the previous round the other endpoint sent a 0 fingerprint), no more communication would be necessary for dealing with any numbers between 30 and 38, and some more numbers greater than or equal to 38 would be sent.
+
+> EL: Here, I would like more detail on a concrete example of a wire format. I think that could be a section on its own.
 
 ## Computing Fingerprints
 
@@ -21,6 +33,8 @@ While the above protocol is sufficiently efficient in terms of communication com
 To be able to quickly compute these fingerprints, we store the set of all locally available values in a self-balancing, binary search tree. In each node, we store the fingerprint of the right subtree. Note that this information can be maintained during insertion and deletion operations without impacting the time complexity of the balanced search tree. A child node stores 0 instead.
 
 The fingerprint for a range starting at item `s` (inclusive) and ending at item `t` (exclusive) is computed as follows: First, trace a path from the root node to `t`. XOR the right-subtree-fingerprints stored in all nodes whose item is greater than or equal to `t`, we call the resulting value `T`. `T` is the fingerprint over all values >= `t`. Then, do the same for `s`, obtaining `S`, the fingerprint over all values >= `s`. The fingerprint for the range from `s` to `t` is simply the XOR of `S` and `T`. All values >= `t` are included twice in that XOR and thus cancel each other out, leaving only the values we care about.
+
+> EL: Here, I think a figure would make it easier to understand.
 
 Instead of using XOR, one can use any binary operation `+` that forms a *transitive group* to define the protocol, i.e. an operation that satisfies the following properties:
 
@@ -31,6 +45,8 @@ Instead of using XOR, one can use any binary operation `+` that forms a *transit
 
 The implementation via binary search trees can be extended to use the much more efficient B-trees instead without requiring any protocol changes. The kind of tree (or even whether a tree used at all) remains an implementation detail.
 
+> EL: I am left with a doubt about whether the protocol as specified above is *complete*, i.e. it covers all possible cases including error cases, and *correct*, i.e. it correctly implements the set union for all of them. I would suggest writing a reference implementation with tests in whichever language you prefer (once your wrists are ok). Some proofs of correctness could help make the formulation more precise, even if they seem trivial at first. Note however that I don't usually write that kind of paper, so my advice is limited to noticing that papers that do include proofs usually are more precise on their terminology, and clearer on their exposition.
+
 ## Fun With Ranges
 
 Beyond full set reconciliation, the range-based approach allows for some neat tricks. For example, one can reconcile only certain subranges of the full set by simply indicating that the other parts don't need more communication (the `done` part in the message example above) in the initial message.
@@ -39,7 +55,11 @@ One can also emulate the efficient replication of append-only-logs. When replica
 
 The initiator sends a message with the fingerprint over all locally available entries and then a 0 hash for all entries of larger sequence number. If the other endpoint has more entries available, it responds with all of them. Otherwise, the other endpoint can reply with the same sort of message, after which the initiating endpoint knows which entries to transmit. While this requires implementations to handle the first message they send in a special way for append-only-logs, the message protocol itself can remain unchanged. If the responding endpoint has fewer entries and does not implement special handling for append-only-logs, the protocol degrades gracefully to replicate in logarithmic time.
 
+> EL: Are you arguing that this algorithm is a strict superset of what is covered by the replication algorithm of SSB? If so, I think a complete exposition of the latter in a separate publication, including its properties and algorithms, and a complete exposition of this one for comparison would make the argument much stronger. I see where you are coming from but I am not yet convinced of the completeness of the solution.
+
 The protocol can also be extended to handle the higher dimensional range queries, simply by using kd-trees in the endpoints.
+
+> EL: Could you provide example applications yet? Or is this a hunch that this might be useful in the future if we find some?
 
 ## Related Work
 
