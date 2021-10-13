@@ -1,3 +1,5 @@
+**A much more elaborate write-up is at [https://github.com/AljoschaMeyer/master_thesis](https://github.com/AljoschaMeyer/master_thesis)**
+
 # Simple And Efficient Set Reconciliation
 
 Imagine two computers connected over a network, and each computer holds a set of values. Set reconciliation is the problem of efficiently exchanging messages between them such that in the end both hold the union of the two sets. If there is a total order on the items, and if items can be hashed to smaller fingerprints with negligible collision probability, this can be done in logarithmic time in a fairly simple manner.
