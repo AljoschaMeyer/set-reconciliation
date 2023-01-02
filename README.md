@@ -1,4 +1,4 @@
-**A much more elaborate write-up is at [https://github.com/AljoschaMeyer/master_thesis](https://github.com/AljoschaMeyer/master_thesis)**
+**A much more elaborate write-up is at [https://arxiv.org/abs/2212.13567](https://arxiv.org/abs/2212.13567)**
 
 # Simple And Efficient Set Reconciliation
 
