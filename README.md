@@ -1,4 +1,4 @@
-**A much more elaborate write-up is at [https://arxiv.org/abs/2212.13567](https://arxiv.org/abs/2212.13567)**
+**Now a [peer-reviewed paper](https://github.com/AljoschaMeyer/rbsr_short/blob/main/main.pdf)**. I'm leaving this initial sketch of the approach online, but please read the paper if you plan to use this.
 
 # Simple And Efficient Set Reconciliation
 
@@ -52,3 +52,14 @@ The protocol can also be extended to handle higher dimensional range queries, si
 ## Acknowledgments
 
 Zenna Fiscella brought up the idea of multidimensional range queries, and Jan Winkelmann immediately suggested kd-trees as a solution.
+
+## Implementations
+
+Here is a list of implementations that I am aware of:
+
+- https://github.com/hoytech/negentropy : wire protocol specification, cpp and javascript implementation, no monoid tree as of writing
+- https://github.com/yukibtc/rust-negentropy : negentropy implementation in rust, no monoid tree as of writing
+- https://github.com/n0-computer/iroh/tree/main/iroh-sync : rust, no monoid tree as of writing
+- https://github.com/keks/unionize/tree/main : rust, in-memory 2-3 monoid tree
+- https://github.com/earthstar-project/range-reconcile : typescript, in-memory red-black monoid tree
+- https://github.com/earthstar-project/willow-js : typescript, persistent monoid skip-list on top of a key-value store
